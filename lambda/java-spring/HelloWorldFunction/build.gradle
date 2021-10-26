@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+task buildZip(type: Zip) {
+    from compileJava
+    from processResources
+    into('lib') {
+        from configurations.runtimeClasspath
+    }
+}
+
+dependencies {
+    implementation 'org.springframework:spring-context:5.3.12'
+    implementation 'com.google.code.gson:gson:2.8.8'
+
+    implementation 'com.amazonaws:aws-lambda-java-core:1.2.1'
+    implementation 'com.amazonaws:aws-lambda-java-events:3.6.0'
+
+    testImplementation 'junit:junit:4.13.1'
+}
