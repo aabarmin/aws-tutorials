@@ -18,7 +18,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         java-version: '11'
-        distribution: 'corretto'
+        distribution: 'adopt'
         cache: gradle
         
     - name: Grant execution permissions to all the gradle wrappers
