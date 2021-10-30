@@ -476,6 +476,7 @@ Resources:
               Service:
                 - ec2.amazonaws.com
                 - ecs.amazonaws.com
+                - ecs-tasks.amazonaws.com
             Action:
               - 'sts:AssumeRole'
       Policies:
@@ -612,6 +613,7 @@ Resources:
       Name: ghost-ec2
       Port: 2368
       Protocol: HTTP
+      TargetType: instance
       VpcId:
         Ref: VPC
 
@@ -624,6 +626,7 @@ Resources:
       Name: ghost-fargate
       Port: 2368
       Protocol: HTTP
+      TargetType: ip
       VpcId:
         Ref: VPC
 
