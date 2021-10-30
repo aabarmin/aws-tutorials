@@ -9,10 +9,6 @@ Parameters:
     Description: Region where VPC and other resources will be deployed
     Type: String
     Default: us-east-1
-  BucketName:
-    Description: Name of S3 bucket to create
-    Type: String
-    Default: lab-s3-bucket-name
   UserIP: 
     Description: CIDR of the user IP, will get access via SSH and HTTP
     Type: String
