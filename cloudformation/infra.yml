@@ -1,0 +1,776 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Final task for EPAM AWS DevOps classes
+Parameters:
+  VPCName:
+    Description: The name of the VPC
+    Type: String
+    Default: cloudx
+  VPCRegion: 
+    Description: Region where VPC and other resources will be deployed
+    Type: String
+    Default: us-east-1
+  BucketName:
+    Description: Name of S3 bucket to create
+    Type: String
+    Default: lab-s3-bucket-name
+  UserIP: 
+    Description: CIDR of the user IP, will get access via SSH and HTTP
+    Type: String
+    Default: 0.0.0.0/0
+  EC2InstanceTemplateId:
+    Description: ID of AMI
+    Type: String
+    Default: ami-02e136e904f3da870
+  EC2InstanceType:
+    Description: Size of EC2 instance to create
+    Type: String
+    Default: t2.micro  
+  EC2KeyPairName:
+    Description: EC2 SSH key pair name
+    Type: String
+    Default: abarmin-kp
+  RDSDatabaseName: 
+    Description: Name of the database to store Ghost data
+    Type: String
+    Default: ghostdatabase
+  RDSMasterUsername:
+    Description: Master username
+    Type: String
+    Default: admin
+  RDSMasterPassword:
+    Description: Master password
+    Type: String
+    Default: AdMiNiStRaToR
+
+Mappings:
+  SubnetConfig:
+    VPC:
+      CIDR: 10.10.0.0/16
+    PublicA:
+      CIDR: 10.10.1.0/24
+      AZ: a
+      Name: public_a
+    PublicB:
+      CIDR: 10.10.2.0/24
+      AZ: b
+      Name: public_b
+    PublicC:
+      CIDR: 10.10.3.0/24
+      AZ: c
+      Name: public_c
+    PrivateA:
+      CIDR: 10.10.10.0/24
+      AZ: a
+      Name: private_a
+    PrivateB:
+      CIDR: 10.10.11.0/24 
+      AZ: b
+      Name: private_b
+    PrivateC:
+      CIDR: 10.10.12.0/24
+      AZ: c
+      Name: private_c
+    PrivateDbA:
+      CIDR: 10.10.20.0/24
+      AZ: a
+      Name: private_db_a
+    PrivateDbB:
+      CIDR: 10.10.21.0/24
+      AZ: b
+      Name: private_db_b
+    PrivateDbC:
+      CIDR: 10.10.22.0/24
+      AZ: c
+      Name: private_db_c
+
+Resources:
+  ###############################################
+  ### VPC
+  ###############################################
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      CidrBlock: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+      Tags:
+        - Key: Name
+          Value: !Ref "VPCName"
+  
+  ###############################################
+  ### Public Subnets
+  ###############################################
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PublicA', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PublicA', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PublicA', 'Name']
+        - Key: Network
+          Value: Public
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PublicB', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PublicB', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PublicB', 'Name']
+        - Key: Network
+          Value: Public
+  PublicSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PublicC', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PublicC', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PublicC', 'Name']
+        - Key: Network
+          Value: Public
+
+  ###############################################
+  ### Private Subnets
+  ###############################################
+  PrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateA', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateA', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateA', 'Name']
+        - Key: Network
+          Value: Private
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateB', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateB', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateB', 'Name']
+        - Key: Network
+          Value: Private
+  PrivateSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateC', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateC', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateC', 'Name']
+        - Key: Network
+          Value: Private 
+
+  ###############################################
+  ### Private DB Subnets
+  ###############################################
+  PrivateDBSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateDbA', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateDbA', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateDbA', 'Name']
+        - Key: Network
+          Value: Private   
+  PrivateDBSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateDbB', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateDbB', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateDbB', 'Name']
+        - Key: Network
+          Value: Private   
+  PrivateDBSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateDbC', 'CIDR']
+      AvailabilityZone: !Join [ '', [ !Ref 'VPCRegion', !FindInMap ['SubnetConfig', 'PrivateDbB', 'AZ'] ]]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !FindInMap ['SubnetConfig', 'PrivateDbC', 'Name']
+        - Key: Network
+          Value: Private  
+
+  ###############################################
+  ### Internet Gateway
+  ###############################################
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: cloudx-igw
+        - Key: Network
+          Value: Public
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  ###############################################
+  ### Routing Tables
+  ###############################################
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public_rt
+        - Key: Network
+          Value: Public
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation0:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetC
+      RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties: 
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private_rt
+        - Key: Network
+          Value: Private
+  PrivateSubnetRouteTableAssociation0:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable  
+  PrivateSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable  
+  PrivateSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnetC
+      RouteTableId: !Ref PrivateRouteTable  
+
+  ###############################################
+  ### Security Groups
+  ###############################################
+  SecurityGroupVPCEndpoint:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: vpc_endpoint
+      GroupDescription: defines access to vpc endpoints
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+  SecurityGroupALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: alb
+      GroupDescription: defines access to alb
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref UserIP
+      # This creates circullar dependency
+      # SecurityGroupEgress:
+      #   - DestinationSecurityGroupId: !Ref SecurityGroupEC2Pool
+      #   - DestinationSecurityGroupId: !Ref SecurityGroupFargatePool
+
+  SecurityGroupEC2Pool: 
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: ec2_pool
+      GroupDescription: allows access for ec2 instances
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref UserIP
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+        - IpProtocol: tcp
+          FromPort: 2368
+          ToPort: 2368
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+
+  SecurityGroupFargatePool:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: fargate_pool
+      GroupDescription: allows access for fargate instances
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+        - IpProtocol: tcp
+          FromPort: 2368
+          ToPort: 2368
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+
+  SecurityGroupMySQL:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: mysql
+      GroupDescription: defines access to ghost db
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref SecurityGroupEC2Pool
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref SecurityGroupFargatePool  
+
+  SecurityGroupEFS:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: efs
+      GroupDescription: defines access to efs mount points
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref SecurityGroupEC2Pool
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref SecurityGroupFargatePool  
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+
+  ###############################################
+  ### RDS
+  ###############################################
+  RDSParameterDatabaseName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: RDS database name
+      Name: /ghost/dbname
+      DataType: text
+      Type: String
+      Value: !Ref RDSDatabaseName
+  RDSParameterUserName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: RDS master username
+      Name: /ghost/dbusername
+      DataType: text
+      Type: String
+      Value: !Ref RDSMasterUsername
+  RDSParameterPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: RDS master password
+      Name: /ghost/dbpassw
+      DataType: text
+      Type: String
+      Value: !Ref RDSMasterPassword
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupName: subnet_group
+      DBSubnetGroupDescription: ghost database subnet group
+      SubnetIds: 
+        - !Ref PrivateDBSubnetA
+        - !Ref PrivateDBSubnetB
+        - !Ref PrivateDBSubnetC
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties: 
+      DBInstanceIdentifier: ghost-db-instance-1
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 21
+      DBInstanceClass: db.t2.micro
+      DBName: !GetAtt RDSParameterDatabaseName.Value
+      Engine: mysql
+      EngineVersion: 8.0.23
+      MasterUsername: !GetAtt RDSParameterUserName.Value
+      MasterUserPassword: !GetAtt RDSParameterPassword.Value
+      BackupRetentionPeriod: 0
+      MultiAZ: false
+      VPCSecurityGroups:
+        - !Ref SecurityGroupMySQL
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      DeleteAutomatedBackups: true
+      DeletionProtection: false
+      Port: 3306
+      PubliclyAccessible: true
+      StorageEncrypted: false
+      StorageType: gp2
+
+  ###############################################
+  ### IAM Role for the app
+  ###############################################
+  GhostAppIAMRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      Description: Access from EC2 and Fargete instances to services
+      RoleName: ghost_app
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - ecs.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'ec2:Describe*'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'ecr:GetAuthorizationToken'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'ecr:BatchCheckLayerAvailability'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'ecr:GetDownloadUrlForLayer'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'ecr:BatchGetImage'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'logs:CreateLogStream'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'logs:PutLogEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'ssm:GetParameter*'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'secretsmanager:GetSecretValue'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'kms:Decrypt'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'elasticfilesystem:DescribeFileSystems'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'elasticfilesystem:ClientMount'
+                Resource: '*'
+              - Effect: Allow
+                Action: 'elasticfilesystem:ClientWrite'
+                Resource: '*'
+  
+  GhostAppIAMRoleInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: ghost_app
+      Path: "/"
+      Roles:
+        - !Ref GhostAppIAMRole
+
+  ###############################################
+  ### EFS
+  ###############################################
+  ContentFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties: 
+      BackupPolicy:
+        Status: DISABLED
+      Encrypted: false
+      FileSystemTags:
+        - Key: Name
+          Value: gh_data
+  ContentFileSystemAccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties: 
+      FileSystemId: !Ref ContentFileSystem 
+      RootDirectory: 
+        Path: '/'
+  ContentFileSystemMountTarget0:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ContentFileSystem
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroups:
+        - !Ref SecurityGroupEFS
+  ContentFileSystemMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ContentFileSystem
+      SubnetId: !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref SecurityGroupEFS
+  ContentFileSystemMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ContentFileSystem
+      SubnetId: !Ref PublicSubnetC
+      SecurityGroups:
+        - !Ref SecurityGroupEFS
+
+  ###############################################
+  ### ALB
+  ###############################################
+  ApplicationLoadBalancer: 
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Name: cloudx-resources-load-balancer
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref SecurityGroupALB
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+  
+  ApplicationLoadBalancerHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      Port: 80
+      Protocol: HTTP
+      LoadBalancerArn:
+        Ref: ApplicationLoadBalancer
+      DefaultActions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref ApplicationLoadBalancerEC2TargetGroup
+                Weight: 1
+              - TargetGroupArn: !Ref ApplicationLoadBalancerFargateTargetGroup
+                Weight: 1
+  
+  ApplicationLoadBalancerEC2TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: ghost-ec2
+      Port: 2368
+      Protocol: HTTP
+      VpcId:
+        Ref: VPC
+
+  ApplicationLoadBalancerFargateTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: ghost-fargate
+      Port: 2368
+      Protocol: HTTP
+      VpcId:
+        Ref: VPC
+
+  ###############################################
+  ### Launch Template for EC2 instances
+  ###############################################
+  GhostApplicationLaunchTemplate: 
+    Type: AWS::EC2::LaunchTemplate
+    Properties: 
+      LaunchTemplateName: ghost
+      LaunchTemplateData:
+        ImageId: !Ref EC2InstanceTemplateId
+        InstanceType: !Ref EC2InstanceType
+        IamInstanceProfile:
+          Arn: !GetAtt GhostAppIAMRoleInstanceProfile.Arn
+        KeyName: !Ref EC2KeyPairName
+        SecurityGroupIds: 
+          - !GetAtt SecurityGroupEC2Pool.GroupId
+        UserData:
+          Fn::Base64: 
+            !Sub 
+              - |
+                #!/bin/bash -xe
+                export HOME="/root"
+                SSM_DB_PASSWORD="/ghost/dbpassw"
+                SSM_DB_USERNAME="/ghost/dbusername"
+                SSM_DB_NAME="/ghost/dbname"
+                GHOST_PACKAGE="ghost-4.12.1.tgz"
+                DB_URL=${R_DB_URL}
+
+                REGION=$(/usr/bin/curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
+                DB_USER=$(aws ssm get-parameter --name $SSM_DB_USERNAME --query Parameter.Value --with-decryption --region $REGION --output text)
+                DB_PASSWORD=$(aws ssm get-parameter --name $SSM_DB_PASSWORD --query Parameter.Value --with-decryption --region $REGION --output text)
+                DB_NAME=$(aws ssm get-parameter --name $SSM_DB_NAME --query Parameter.Value --with-decryption --region $REGION --output text)
+                EFS_ID=$(aws efs describe-file-systems --query 'FileSystems[?Name==`gh_data`].FileSystemId' --region $REGION --output text)
+
+                ### Install pre-reqs
+                curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
+                sudo yum install -y nodejs
+
+                ### EFS mount
+                mkdir -p /var/lib/ghost/content
+                yum -y install amazon-efs-utils
+                mount -t efs -o tls $EFS_ID:/ /var/lib/ghost/content
+
+                ### Configure and start ghost app
+                npm install ghost-cli@latest -g
+
+                adduser ghost
+                usermod -aG ghost ghost
+
+                mkdir /ghost
+                chown ghost:ghost /ghost
+                chmod 755 /ghost
+
+                cd /ghost
+                sudo -u ghost ghost install local
+
+                rm -f config.development.json
+                cat << EOF >> config.development.json
+                {
+                    "url": "http://localhost:2368/",
+                    "server": {
+                        "port": 2368,
+                        "host": "0.0.0.0"
+                    },
+                    "database": {
+                        "client": "mysql",
+                        "connection": {
+                            "host": "$DB_URL",
+                            "port": 3306,
+                            "user": "$DB_USER",
+                            "password": "$DB_PASSWORD",
+                            "database": "$DB_NAME"
+                        }
+                    },
+                    "mail": {
+                        "transport": "Direct"
+                    },
+                    "logging": {
+                        "transports": [
+                            "file",
+                            "stdout"
+                        ]
+                    },
+                    "process": "local",
+                    "paths": {
+                        "contentPath": "/ghost/content"
+                    }
+                }
+                EOF
+
+                rsync -axvr --ignore-existing /ghost/content/ /var/lib/ghost/content || true
+                chmod 755 -R /var/lib/ghost
+
+                sudo -u ghost ghost restart
+              - R_DB_URL: !GetAtt RDSInstance.Endpoint.Address
+
+  ###############################################
+  ### Autoscaling Group
+  ###############################################
+  GhostAppEC2AutoscalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties: 
+      AutoScalingGroupName: ghost_ec2_pool
+      VPCZoneIdentifier:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+      MinSize: 1
+      MaxSize: 3
+      DesiredCapacity: 2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref GhostApplicationLaunchTemplate
+        Version: !GetAtt GhostApplicationLaunchTemplate.LatestVersionNumber
+      TargetGroupARNs:
+        - !Ref ApplicationLoadBalancerEC2TargetGroup
+
+  ###############################################
+  ### Private ECR
+  ###############################################
+  GhostApplicationPrivateECR:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: ghost_repository
+
+  ###############################################
+  ### ECS Cluster
+  ###############################################
+  GhostApplicationECS:
+    Type: AWS::ECS::Cluster
+    Properties: 
+      ClusterName: ghost
+      CapacityProviders:
+        - FARGATE
+
+Outputs:
+  RDSInstanceInfo: 
+    Description: RDS Instance Info
+    Value: !Ref RDSInstance
+  RDSInstanceConnectionHost:
+    Description: RDS Instance Connection Host
+    Value: !GetAtt RDSInstance.Endpoint.Address
+  AccessUrl:
+    Description: ALB address to access the application
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
