@@ -923,7 +923,7 @@ Resources:
             Resource: '*'
       RouteTableIds:
         - !Ref PrivateRouteTable
-      VpcEndpointType: Geteway
+      VpcEndpointType: Gateway
       ServiceName: 
         !Sub
           - 'com.amazonaws.${region}.s3'
