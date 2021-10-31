@@ -763,6 +763,174 @@ Resources:
       CapacityProviders:
         - FARGATE
 
+  ###############################################
+  ### VPC Endpoints to make ECS tasks started
+  ### in private subnects working
+  ###############################################
+  VPCEndpointECR:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.ecs'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointECSAgent:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.ecs-agent'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointECSTelemetry:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.ecs-telemetry'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointECRAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.ecr.api'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointECRDKR:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.ecr.dkr'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointCloudWatch:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref SecurityGroupVPCEndpoint
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      VpcEndpointType: Interface
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.logs'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: "Allow"
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      VpcEndpointType: Geteway
+      ServiceName: 
+        !Sub
+          - 'com.amazonaws.${region}.s3'
+          - region: !Ref VPCRegion
+      VpcId: !Ref VPC
+
+
 Outputs:
   RDSInstanceInfo: 
     Description: RDS Instance Info
